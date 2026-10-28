@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>あと1回だけ！ 〜ギャンブルの心理とお金の悪循環〜</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'M PLUS Rounded 1c', sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%);
+      color: #f8fafc;
+      user-select: none;
+      min-height: 100vh;
+    }
+
+    /* ガラスモフィズムデザイン */
+    .glass-panel {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .glass-card {
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* 3D 360 Flip アニメーション */
+    .perspective-1000 {
+      perspective: 1000px;
+    }
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      transform-style: preserve-3d;
+    }
+    .card-inner.is-flipped {
+      transform: rotateY(180deg);
+    }
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .card-back {
+      transform: rotateY(180deg);
+    }
+
+    /* ポップな光彩効果・アニメーション */
+    @keyframes pulse-gold {
+      0%, 100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.3); border-color: rgba(245, 158, 11, 0.6); }
+      50% { box-shadow: 0 0 35px rgba(245, 158, 11, 0.7); border-color: rgba(251, 191, 36, 0.9); }
+    }
+    .gold-glow {
+      animation: pulse-gold 2.5s infinite ease-in-out;
+    }
+
+    /* カスタムスクロールバー */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    /* ラジオボタン隠し選択枠 */
+    .selectable-card input[type="radio"] {
+      display: none;
+    }
+    .selectable-card input[type="radio"]:checked + div {
+      border-color: #f59e0b;
+      background-color: rgba(245, 158, 11, 0.15);
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+    }
+  </style>
+</head>
+<body class="flex flex-col justify-between overflow-x-hidden min-h-screen">
+
+  <!-- ヘッダー / ステータスバー -->
+  <header class="bg-slate-900/90 border-b border-slate-700/80 backdrop-blur-md sticky top-0 z-40 px-4 py-3 shadow-lg">
+    <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <!-- 月数＆住居表示 -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <span class="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black px-3.5 py-1 rounded-full text-sm md:text-base shadow-md">
+          <span id="header-month">1</span> / <span id="header-max-month">6</span> か月目
+        </span>
+        <div class="flex flex-col">
+          <span class="text-xs text-amber-400 font-bold" id="header-house-name">🏠 未設定</span>
+          <span class="text-[10px] text-slate-400 hidden sm:inline" id="header-phase-text">【設定画面】</span>
+        </div>
+      </div>
+
+      <!-- パラメータステータス表示 -->
+      <div class="flex items-center space-x-3 md:space-x-6 text-xs md:text-sm font-bold">
+        <!-- 所持金 -->
+        <div class="flex flex-col items-end">
+          <span class="text-[10px] text-slate-400">所持金</span>
+          <span id="stat-wallet" class="text-emerald-400 font-black text-base md:text-lg">10,000円</span>
+        </div>
+        <!-- 借金 -->
+        <div class="flex flex-col items-end">
+          <span class="text-[10px] text-slate-400">借金 (利息20%/月)</span>
+          <span id="stat-debt" class="text-rose-400 font-black text-base md:text-lg">0円</span>
+        </div>
+        <!-- 純資産 -->
+        <div class="flex flex-col items-end border-l border-slate-700 pl-3">
+          <span class="text-[10px] text-slate-400">純資産</span>
+          <span id="stat-net" class="text-sky-300 font-black text-base md:text-lg">10,000円</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ領域 -->
+  <main class="flex-1 max-w-5xl w-full mx-auto p-4 flex flex-col justify-center relative my-auto">
+
+    <!-- 0. セットアップ画面（月数＆住まい選択） -->
+    <div id="screen-start" class="glass-panel rounded-3xl p-6 md:p-8 border border-amber-500/30 text-center shadow-2xl gold-glow my-4">
+      <div class="inline-block bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-black px-4 py-1 rounded-full text-xs md:text-sm mb-3 shadow-md">
+        金融体験カードゲーム「あと1回だけ！」
+      </div>
+      <h1 class="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-orange-400 mb-3 tracking-wide">
+        ギャンブルの心理とお金の悪循環
+      </h1>
+      <p class="text-slate-300 text-xs md:text-sm max-w-2xl mx-auto mb-6 leading-relaxed">
+        あなたは1万円を持って一人暮らしをスタートします。<br class="hidden sm:inline">
+        毎月の生活費を支払いながら、カードギャンブルで一攫千金を狙うこともできます。<br>
+        <strong class="text-amber-400">生活を守り抜くか、負けを取り返そうとして借金地獄に落ちるのか…？</strong>
+      </p>
+
+      <!-- 設定フォーム -->
+      <div class="space-y-6 text-left max-w-3xl mx-auto">
+        <!-- 1. ゲームの長さ（月数）選択 -->
+        <div>
+          <label class="block text-sm font-bold text-amber-300 mb-2 flex items-center gap-1.5">
+            <span>📅</span> <span>プレイ期間（月数）を選んでください:</span>
+          </label>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <label class="selectable-card cursor-pointer">
+              <input type="radio" name="game-duration" value="3">
+              <div class="glass-card p-3 rounded-xl border border-slate-700 text-center hover:border-amber-400 transition">
+                <div class="text-xs text-slate-400 font-bold">サクッと体験</div>
+                <div class="text-lg font-black text-amber-400">3か月</div>
+              </div>
+            </label>
+            <label class="selectable-card cursor-pointer">
+              <input type="radio" name="game-duration" value="6" checked>
+              <div class="glass-card p-3 rounded-xl border border-slate-700 text-center hover:border-amber-400 transition">
+                <div class="text-xs text-slate-400 font-bold">標準モード</div>
+                <div class="text-lg font-black text-amber-400">6か月</div>
+              </div>
+            </label>
+            <label class="selectable-card cursor-pointer">
+              <input type="radio" name="game-duration" value="12">
+              <div class="glass-card p-3 rounded-xl border border-slate-700 text-center hover:border-amber-400 transition">
+                <div class="text-xs text-slate-400 font-bold">じっくり経営</div>
+                <div class="text-lg font-black text-amber-400">12か月</div>
+              </div>
+            </label>
+            <label class="selectable-card cursor-pointer">
+              <input type="radio" name="game-duration" value="24">
+              <div class="glass-card p-3 rounded-xl border border-slate-700 text-center hover:border-amber-400 transition">
+                <div class="text-xs text-slate-400 font-bold">長期間サバイバル</div>
+                <div class="text-lg font-black text-amber-400">24か月</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- 2. 住まい選択（4択） -->
+        <div>
+          <label class="block text-sm font-bold text-amber-300 mb-2 flex items-center gap-1.5">
+            <span>🏠</span> <span>最初に住む場所（生活環境）を選んでください:</span>
+          </label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- 選択肢 1 -->
+            <label class="selectable-card cursor-pointer">
+              <input type="radio" name="house-type" value="cheap" checked>
+              <div class="glass-card p-3.5 rounded-xl border border-slate-700 hover:border-amber-400 transition h-full flex flex-col justify-between">
+                <div>
+                  <div class="flex justify-between items-center mb-1">
+                    <span class="font-black text-slate-100 text-sm">🏚️ 格安ボロアパート</span>
+                    <span class="text-xs font-bold text-emerald-400">家賃 2,000円/月</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 leading-relaxed">とにかく固定費が安い！ただし生活環境は普通で、イベントカードは通常のランダム。</p>
+                </div>
+                <span class="mt-2 text-[10px] text-slate-500 font-bold">効果: 通常イベントドロー(1枚)</span>
+              </div>
+            </label>
+
+            <!-- 選択肢 2 -->
+            <label class="selectable-card cursor-pointer">
+              <input type="radio" name="house-type" value="normal">
+              <div class="glass-card p-3.5 rounded-xl border border-slate-700 hover:border-amber-400 transition h-full flex flex-col justify-between">
+                <div>
+                  <div class="flex justify-between items-center mb-1">
+                    <span class="font-black text-slate-100 text-sm">🏢 標準マンション</span>
+                    <span class="text-xs font-bold text-sky-400">家賃 4,000円/月</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 leading-relaxed">バランスの取れた住環境。少し良いイベントカードが引きやすくなります。</p>
+                </div>
+                <span class="mt-2 text-[10px] text-sky-400/80 font-bold">効果: 良いイベント確率が少しUP</span>
+              </div>
+            </label>
+
+            <!-- 選択肢 3 -->
+            <label class="selectable-card cursor-pointer">
+              <input type="radio" name="house-type" value="luxury">
+              <div class="glass-card p-3.5 rounded-xl border border-slate-700 hover:border-amber-400 transition h-full flex flex-col justify-between">
+                <div>
+                  <div class="flex justify-between items-center mb-1">
+                    <span class="font-black text-amber-300 text-sm">🏙️ 高級タワーマンション</span>
+                    <span class="text-xs font-bold text-amber-400">家賃 8,000円/月</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 leading-relaxed">高額な家賃ですが、毎月イベントカードを2枚引いて【好きな方を選択】できます！</p>
+                </div>
+                <span class="mt-2 text-[10px] text-amber-400/80 font-bold">効果: 毎月2枚引いて選べる！</span>
+              </div>
+            </label>
+
+            <!-- 選択肢 4 -->
+            <label class="selectable-card cursor-pointer">
+              <input type="radio" name="house-type" value="resort">
+              <div class="glass-card p-3.5 rounded-xl border border-slate-700 hover:border-amber-400 transition h-full flex flex-col justify-between">
+                <div>
+                  <div class="flex justify-between items-center mb-1">
+                    <span class="font-black text-purple-300 text-sm">🏰 超豪華リゾート邸宅</span>
+                    <span class="text-xs font-bold text-rose-400">家賃 15,000円/月</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 leading-relaxed">家賃は超高額！2枚引き選択に加え、プラスイベント率＆臨時収入の額がボーナス増額！</p>
+                </div>
+                <span class="mt-2 text-[10px] text-purple-300/80 font-bold">効果: 2枚引き選抜 + 臨時収入+500円</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="text-center pt-2">
+          <button id="btn-game-start" class="w-full max-w-sm bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-xl py-4 px-8 rounded-full shadow-lg transform hover:scale-105 active:scale-95 transition">
+            一人暮らしをスタート！
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1. 生活イベントカードフェーズ -->
+    <div id="screen-event" class="hidden flex-col items-center justify-center space-y-6 my-auto py-4">
+      <div class="text-center">
+        <span class="text-xs bg-sky-500/20 text-sky-300 border border-sky-500/40 px-3.5 py-1 rounded-full font-bold">ステップ 1/5</span>
+        <h2 class="text-2xl md:text-3xl font-black mt-2 text-white">今月の生活イベント</h2>
+        <p id="event-select-hint" class="text-xs text-amber-300 font-bold mt-1 hidden">※住居の特権！好きな方のイベントを選んでください。</p>
+      </div>
+
+      <!-- イベントカードエリア（2枚引きの場合は並べて表示） -->
+      <div id="event-cards-container" class="grid grid-cols-1 sm:grid-cols-1 gap-4 w-full max-w-xl">
+        <!-- JavaScriptで動的生成 -->
+      </div>
+
+      <button id="btn-event-next" class="w-full max-w-md bg-sky-500 hover:bg-sky-400 text-slate-950 font-black py-3.5 rounded-2xl text-lg shadow-lg transition">
+        次へ進む（生活費の確認）
+      </button>
+    </div>
+
+    <!-- 2. 生活費支払いフェーズ -->
+    <div id="screen-living" class="hidden flex-col items-center justify-center space-y-6 my-auto py-4">
+      <div class="text-center">
+        <span class="text-xs bg-rose-500/20 text-rose-300 border border-rose-500/40 px-3.5 py-1 rounded-full font-bold">ステップ 2/5</span>
+        <h2 class="text-2xl md:text-3xl font-black mt-2 text-white">今月の固定生活費</h2>
+      </div>
+
+      <div class="w-full max-w-md glass-panel border border-slate-700 rounded-3xl p-6 shadow-xl space-y-4 text-center">
+        <div class="text-5xl my-1">🏠</div>
+        <p class="text-slate-300 text-xs md:text-sm">家賃、ごはん代、水道光熱費などの基本生活費を支払います。</p>
+
+        <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-700 space-y-2">
+          <div class="flex justify-between items-center text-xs text-slate-400">
+            <span id="living-house-label">住居家賃:</span>
+            <span id="living-rent-amount" class="font-bold text-slate-200">4,000円</span>
+          </div>
+          <div class="flex justify-between items-center text-xs text-slate-400">
+            <span>基本生活維持費:</span>
+            <span id="living-base-amount" class="font-bold text-slate-200">0円</span>
+          </div>
+          <div class="border-t border-slate-800 pt-2 flex justify-between items-center">
+            <span class="text-slate-300 font-bold">合計支払額:</span>
+            <span id="living-cost-amount" class="text-2xl font-black text-rose-400">4,000円</span>
+          </div>
+        </div>
+
+        <div id="living-notice" class="text-xs text-amber-400 font-bold bg-amber-500/10 p-3 rounded-xl border border-amber-500/20">
+          ※1か月目は新生活準備キャンペーンのため【生活費無料】です！
+        </div>
+      </div>
+
+      <button id="btn-living-pay" class="w-full max-w-md bg-rose-500 hover:bg-rose-400 text-white font-black py-3.5 rounded-2xl text-lg shadow-lg transition">
+        生活費を支払う
+      </button>
+    </div>
+
+    <!-- 3. ギャンブルベット設定フェーズ -->
+    <div id="screen-bet" class="hidden flex-col items-center justify-center space-y-5 my-auto py-4">
+      <div class="text-center">
+        <span class="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3.5 py-1 rounded-full font-bold">ステップ 3/5</span>
+        <h2 class="text-2xl md:text-3xl font-black mt-2 text-white">カードギャンブルに挑戦？</h2>
+      </div>
+
+      <!-- オッズ・当たり確率情報 -->
+      <div class="w-full max-w-md glass-panel border border-amber-500/30 rounded-2xl p-4 flex justify-around items-center text-center">
+        <div>
+          <div class="text-[10px] text-slate-400">今月の当たりの数</div>
+          <div id="bet-win-count" class="text-xl font-black text-amber-400">4枚中 3枚</div>
+        </div>
+        <div class="h-8 w-px bg-slate-700"></div>
+        <div>
+          <div class="text-[10px] text-slate-400">当たった時の倍率</div>
+          <div id="bet-multiplier" class="text-xl font-black text-emerald-400">2.0倍</div>
+        </div>
+      </div>
+
+      <!-- ベット選択画面 -->
+      <div class="w-full max-w-md glass-panel border border-slate-700 rounded-3xl p-6 shadow-xl space-y-5">
+        <label class="block text-xs md:text-sm font-bold text-slate-200">いくら賭（か）けますか？</label>
+
+        <!-- ボタン選択 -->
+        <div class="grid grid-cols-3 gap-2">
+          <button class="btn-preset-bet bg-slate-800 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs sm:text-sm border border-slate-700 transition" data-amount="1000">1,000円</button>
+          <button class="btn-preset-bet bg-slate-800 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs sm:text-sm border border-slate-700 transition" data-amount="2000">2,000円</button>
+          <button class="btn-preset-bet bg-slate-800 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs sm:text-sm border border-slate-700 transition" data-amount="4000">4,000円</button>
+        </div>
+
+        <!-- 自由入力 -->
+        <div class="relative">
+          <input type="number" id="input-bet-amount" min="0" step="500" value="2000" class="w-full bg-slate-950 border border-slate-600 rounded-2xl px-4 py-3 text-right text-xl font-black text-amber-400 focus:outline-none focus:border-amber-400 pr-12">
+          <span class="absolute right-4 top-3.5 text-slate-400 font-bold">円</span>
+        </div>
+
+        <!-- 警告メッセージ -->
+        <div id="bet-warning" class="hidden text-xs text-rose-400 bg-rose-500/10 p-3 rounded-xl border border-rose-500/20 font-bold">
+          ⚠️ 所持金を超える金額です！不足分は自動的に【借金】となります。
+        </div>
+
+        <div class="flex space-x-3 pt-2">
+          <button id="btn-skip-gamble" class="w-1/3 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-3.5 rounded-2xl text-xs sm:text-sm transition">
+            賭けない
+          </button>
+          <button id="btn-confirm-bet" class="w-2/3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black py-3.5 rounded-2xl text-sm md:text-base shadow-lg transition">
+            決定してカードを選ぶ！
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. カード選択・結果フェーズ -->
+    <div id="screen-cards" class="hidden flex-col items-center justify-center space-y-6 my-auto py-4">
+      <div class="text-center">
+        <span class="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3.5 py-1 rounded-full font-bold">ステップ 4/5</span>
+        <h2 id="card-title-text" class="text-2xl md:text-3xl font-black mt-2 text-white">カードを1枚えらんでね！</h2>
+      </div>
+
+      <!-- トランプ4枚 -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4 w-full max-w-2xl px-2">
+        <!-- カード1 -->
+        <div class="card-item perspective-1000 h-40 sm:h-56 cursor-pointer" data-card-idx="0">
+          <div class="card-inner border border-amber-400/30 rounded-2xl shadow-xl">
+            <div class="card-front bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 text-amber-400 border border-amber-400/40">
+              <span class="text-4xl">♦️</span>
+              <span class="text-xs font-bold mt-2 text-slate-300">ダイヤ</span>
+            </div>
+            <div class="card-back bg-slate-900 text-white border border-slate-700">
+              <span class="card-result-icon text-4xl mb-1">❓</span>
+              <span class="card-result-text font-black text-sm">結果</span>
+            </div>
+          </div>
+        </div>
+        <!-- カード2 -->
+        <div class="card-item perspective-1000 h-40 sm:h-56 cursor-pointer" data-card-idx="1">
+          <div class="card-inner border border-amber-400/30 rounded-2xl shadow-xl">
+            <div class="card-front bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 text-amber-400 border border-amber-400/40">
+              <span class="text-4xl">♠️</span>
+              <span class="text-xs font-bold mt-2 text-slate-300">スペード</span>
+            </div>
+            <div class="card-back bg-slate-900 text-white border border-slate-700">
+              <span class="card-result-icon text-4xl mb-1">❓</span>
+              <span class="card-result-text font-black text-sm">結果</span>
+            </div>
+          </div>
+        </div>
+        <!-- カード3 -->
+        <div class="card-item perspective-1000 h-40 sm:h-56 cursor-pointer" data-card-idx="2">
+          <div class="card-inner border border-amber-400/30 rounded-2xl shadow-xl">
+            <div class="card-front bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 text-amber-400 border border-amber-400/40">
+              <span class="text-4xl">♥️</span>
+              <span class="text-xs font-bold mt-2 text-slate-300">ハート</span>
+            </div>
+            <div class="card-back bg-slate-900 text-white border border-slate-700">
+              <span class="card-result-icon text-4xl mb-1">❓</span>
+              <span class="card-result-text font-black text-sm">結果</span>
+            </div>
+          </div>
+        </div>
+        <!-- カード4 -->
+        <div class="card-item perspective-1000 h-40 sm:h-56 cursor-pointer" data-card-idx="3">
+          <div class="card-inner border border-amber-400/30 rounded-2xl shadow-xl">
+            <div class="card-front bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 text-amber-400 border border-amber-400/40">
+              <span class="text-4xl">♣️</span>
+              <span class="text-xs font-bold mt-2 text-slate-300">クローバー</span>
+            </div>
+            <div class="card-back bg-slate-900 text-white border border-slate-700">
+              <span class="card-result-icon text-4xl mb-1">❓</span>
+              <span class="card-result-text font-black text-sm">結果</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 結果アナウンスボックス -->
+      <div id="gamble-result-box" class="hidden w-full max-w-md glass-panel border border-slate-700 rounded-2xl p-5 text-center space-y-2">
+        <h3 id="result-status-title" class="text-2xl font-black text-amber-400">大当たり！</h3>
+        <p id="result-status-desc" class="text-xs md:text-sm text-slate-300">2,000円賭けて、利益2,000円を獲得！</p>
+        <button id="btn-cards-next" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3 rounded-xl text-base mt-2 transition shadow-md">
+          精算と気持ちの記入へ
+        </button>
+      </div>
+    </div>
+
+    <!-- 5. 今月の振り返り・気持ちの記録フェーズ -->
+    <div id="screen-reflect" class="hidden flex-col items-center justify-center space-y-5 my-auto py-4">
+      <div class="text-center">
+        <span class="text-xs bg-purple-500/20 text-purple-300 border border-purple-500/40 px-3.5 py-1 rounded-full font-bold">ステップ 5/5</span>
+        <h2 class="text-2xl md:text-3xl font-black mt-2 text-white">今月の清算と記録</h2>
+      </div>
+
+      <div class="w-full max-w-md glass-panel border border-slate-700 rounded-3xl p-6 shadow-xl space-y-4">
+        <!-- 利息・借金発生アラート -->
+        <div id="debt-interest-notice" class="hidden bg-rose-500/10 border border-rose-500/30 p-3.5 rounded-2xl text-xs text-rose-300 space-y-1">
+          <div class="font-bold flex items-center space-x-1 text-rose-400">
+            <span>⚠️</span> <span>借金の利息が加算されました！</span>
+          </div>
+          <p id="debt-interest-detail">前月の借金残高に対し、利息20%を加算しました。</p>
+        </div>
+
+        <!-- 今月のまとめサマリー -->
+        <div class="bg-slate-950/70 p-4 rounded-2xl space-y-2 text-xs md:text-sm border border-slate-800">
+          <div class="flex justify-between border-b border-slate-800/80 pb-2">
+            <span class="text-slate-400">今月の最終所持金:</span>
+            <span id="summary-wallet" class="font-bold text-emerald-400">10,000円</span>
+          </div>
+          <div class="flex justify-between border-b border-slate-800/80 pb-2">
+            <span class="text-slate-400">現在の借金残高:</span>
+            <span id="summary-debt" class="font-bold text-rose-400">0円</span>
+          </div>
+          <div class="flex justify-between font-black pt-1">
+            <span class="text-slate-300">純資産（所持金 - 借金）:</span>
+            <span id="summary-net" class="text-sky-300">10,000円</span>
+          </div>
+        </div>
+
+        <!-- 気持ちの記録フォーム -->
+        <div class="space-y-3">
+          <label class="block text-xs font-bold text-purple-300">
+            今のあなたの気持ちを選んでね（記録シートに残ります）：
+          </label>
+          <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+            <button class="btn-emotion bg-slate-800 hover:bg-purple-600 text-slate-200 p-2.5 rounded-xl text-left border border-slate-700 transition" data-emotion="イケイケ！もっと稼ぎたい">
+              😆 イケイケ！稼ぎたい
+            </button>
+            <button class="btn-emotion bg-slate-800 hover:bg-purple-600 text-slate-200 p-2.5 rounded-xl text-left border border-slate-700 transition" data-emotion="負けた…取り返したい！">
+              😤 負けた…取り返したい！
+            </button>
+            <button class="btn-emotion bg-slate-800 hover:bg-purple-600 text-slate-200 p-2.5 rounded-xl text-left border border-slate-700 transition" data-emotion="生活費がヤバい…不安">
+              😰 生活費がヤバい…不安
+            </button>
+            <button class="btn-emotion bg-slate-800 hover:bg-purple-600 text-slate-200 p-2.5 rounded-xl text-left border border-slate-700 transition" data-emotion="ギャンブルをやめたい">
+              🛑 ギャンブルをやめたい
+            </button>
+          </div>
+
+          <input type="text" id="input-emotion-custom" placeholder="自由に入力（例：家賃が高くて辛い、借金が怖い）" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-400">
+        </div>
+
+        <button id="btn-finish-month" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-black py-3.5 rounded-2xl text-base shadow-lg transition">
+          今月を記録して次の月へ！
+        </button>
+      </div>
+    </div>
+
+    <!-- 6. 全月数終了時の結果発表（エンディング画面） -->
+    <div id="screen-result" class="hidden flex-col items-center justify-center space-y-6 my-auto py-6">
+      <div class="text-center">
+        <span class="bg-amber-500 text-slate-950 font-black px-4 py-1 rounded-full text-xs shadow-md">
+          プレイ終了！おつかれさまでした
+        </span>
+        <h2 class="text-3xl md:text-4xl font-black mt-3 text-white">あなたの結末と振り返り</h2>
+      </div>
+
+      <!-- エンディング判定カード -->
+      <div id="ending-card" class="w-full max-w-xl glass-panel border-2 border-amber-500/50 rounded-3xl p-6 shadow-2xl space-y-4">
+        <div class="flex items-center space-x-3">
+          <span id="ending-badge" class="bg-rose-500 text-white font-black px-3 py-1 rounded-lg text-xs">結末 A</span>
+          <h3 id="ending-title" class="text-xl md:text-2xl font-black text-amber-300">負けを取り返そうとして借金が増えた</h3>
+        </div>
+        <p id="ending-desc" class="text-xs md:text-sm text-slate-300 leading-relaxed bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
+          負けを取り返すことばかり考え、生活費や利息の計算ができなくなってしまいました。
+        </p>
+
+        <!-- 最終ステータス -->
+        <div class="grid grid-cols-3 gap-2 text-center py-3 bg-slate-950/60 rounded-2xl border border-slate-800">
+          <div>
+            <div class="text-[10px] text-slate-400">最終所持金</div>
+            <div id="final-wallet" class="text-sm sm:text-base font-black text-emerald-400">0円</div>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-400">最終借金</div>
+            <div id="final-debt" class="text-sm sm:text-base font-black text-rose-400">12,000円</div>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-400">最終純資産</div>
+            <div id="final-net" class="text-sm sm:text-base font-black text-sky-300">-12,000円</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- プレイヤー記録表（推移テーブル） -->
+      <div class="w-full max-w-xl glass-panel border border-slate-700 rounded-3xl p-5 shadow-xl space-y-3">
+        <h4 class="font-bold text-sm text-amber-400 flex items-center space-x-1.5">
+          <span>📊</span> <span>プレイ記録シート</span>
+        </h4>
+        <div class="overflow-x-auto max-h-56">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="sticky top-0 bg-slate-900 border-b border-slate-700">
+              <tr class="text-slate-400">
+                <th class="py-2 px-2">月</th>
+                <th class="py-2 px-2">所持金</th>
+                <th class="py-2 px-2">借金</th>
+                <th class="py-2 px-2">純資産</th>
+                <th class="py-2 px-2">気持ち</th>
+              </tr>
+            </thead>
+            <tbody id="result-table-body" class="divide-y divide-slate-800 text-slate-200">
+              <!-- JSで動的生成 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 教育解説・ふりかえりノート -->
+      <div class="w-full max-w-xl glass-panel border border-sky-500/30 rounded-3xl p-5 space-y-3 text-xs md:text-sm text-slate-300">
+        <h4 class="font-bold text-sky-300 flex items-center space-x-1.5">
+          <span>💡</span> <span>金融教育の学びと気づき</span>
+        </h4>
+        <ul class="list-disc list-inside space-y-1.5 leading-relaxed text-slate-300">
+          <li><strong>「ビギナーズラック」の罠：</strong> 最初の勝ち体験が「次も勝てる」と思い込ませる心理的罠になります。</li>
+          <li><strong>固定生活費の重み：</strong> ギャンブルに夢中になると、毎月必ず支払わなければならない家賃や生活費を失念しがちです。</li>
+          <li><strong>借金と利息の雪だるま：</strong> 負けを取り返そうと借金すると、毎月20%の利息がつき、自力返済が困難になります。</li>
+          <li><strong>賢い選択：</strong> 途中で「やめる」「生活費を優先する」と判断できることが、現実世界でも最大の防御です。</li>
+        </ul>
+      </div>
+
+      <button id="btn-restart" class="w-full max-w-xs bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black py-4 rounded-full text-lg shadow-xl transform hover:scale-105 transition">
+        設定を変えてもう一度遊ぶ！
+      </button>
+    </div>
+
+  </main>
+
+  <!-- フッター -->
+  <footer class="bg-slate-950 border-t border-slate-800 py-3 px-4 text-center text-xs text-slate-500">
+    金融教育カードゲーム「あと1回だけ！」 &copy; ギャンブルの心理とお金の悪循環学習シミュレーター
+  </footer>
+
+  <!-- ゲームロジックJavaScript -->
+  <script>
+    // --- 住居設定マスター ---
+    const HOUSES = {
+      cheap: {
+        id: "cheap",
+        name: "🏚️ 格安ボロアパート",
+        rent: 2000,
+        drawCount: 1,
+        goodRateBonus: 0,
+        bonusMoney: 0,
+        desc: "家賃は最安ですが、カードは通常ドロー。"
+      },
+      normal: {
+        id: "normal",
+        name: "🏢 標準マンション",
+        rent: 4000,
+        drawCount: 1,
+        goodRateBonus: 0.15,
+        bonusMoney: 0,
+        desc: "標準的な住居。良いイベントが少し出やすい。"
+      },
+      luxury: {
+        id: "luxury",
+        name: "🏙️ 高級タワーマンション",
+        rent: 8000,
+        drawCount: 2,
+        goodRateBonus: 0.25,
+        bonusMoney: 0,
+        desc: "2枚引いて好きなイベントを選択可能！"
+      },
+      resort: {
+        id: "resort",
+        name: "🏰 超豪華リゾート邸宅",
+        rent: 15000,
+        drawCount: 2,
+        goodRateBonus: 0.40,
+        bonusMoney: 500,
+        desc: "2枚引き選抜 + ポジティブ確率大幅UP + 臨時収入+500円ボーナス！"
+      }
+    };
+
+    // --- 豊富なイベントカードマスター（全16種類） ---
+    const EVENT_POOL = [
+      { id: 1, tag: "臨時収入", type: "plus", amount: 1000, title: "フリマアプリで不要品が売れた！", desc: "部屋の片付けで出た不要品を売って、臨時収入を得た！", icon: "📦", quality: "good" },
+      { id: 2, tag: "急な出費", type: "minus", amount: 1500, title: "スマホの画面割れ修理代", desc: "手を滑らせてスマホを落としてしまい、修理代が発生！", icon: "📱", quality: "bad" },
+      { id: 3, tag: "あおり広告", type: "info", amount: 0, title: "「今なら絶対勝てる！」怪しい広告", desc: "「必ず儲かる秘密のカード」の宣伝を見た。信用できるかな？", icon: "📢", quality: "neutral" },
+      { id: 4, tag: "臨時収入", type: "plus", amount: 2000, title: "手伝いのお礼と臨時ボーナス！", desc: "親戚の手伝いを一生懸命頑張ったのでお小遣いをもらった！", icon: "✉️", quality: "good" },
+      { id: 5, tag: "急な出費", type: "minus", amount: 2000, title: "友だちの誕生日プレゼント代", desc: "仲良しの友だちの誕生日！みんなでお祝いを贈った。", icon: "🎁", quality: "bad" },
+      { id: 6, tag: "生活費", type: "minus", amount: 1200, title: "電気代が今月高かった！", desc: "エアコンのつけっぱなしで電気代が予想外にアップ。", icon: "⚡", quality: "bad" },
+      { id: 7, tag: "臨時収入", type: "plus", amount: 1500, title: "ポイント還元キャンペーン！", desc: "貯めていたポイントが還元されて現金相当の得をした！", icon: "🪙", quality: "good" },
+      { id: 8, tag: "警告", type: "info", amount: 0, title: "詐欺メールが届いた！", desc: "「未払いのお金があります」という怪しいメール。無視しよう。", icon: "⚠️", quality: "neutral" },
+      { id: 9, tag: "急な出費", type: "minus", amount: 2500, title: "自転車のパンクとブレーキ修理", desc: "通学・通勤で使う自転車が故障し、修理が必要になった。", icon: "🚲", quality: "bad" },
+      { id: 10, tag: "臨時収入", type: "plus", amount: 3000, title: "資格取得のお祝い金！", desc: "頑張って勉強した検定試験に合格してお祝い金をもらった！", icon: "🎓", quality: "good" },
+      { id: 11, tag: "急な出費", type: "minus", amount: 1800, title: "急な体調不良で病院代", desc: "風邪をひいてしまい病院代と薬代がかかってしまった。", icon: "🏥", quality: "bad" },
+      { id: 12, tag: "臨時収入", type: "plus", amount: 1200, title: "思わぬバザーの売上！", desc: "学校や地域のバザーで手作りグッズが売れた！", icon: "🎨", quality: "good" },
+      { id: 13, tag: "急な出費", type: "minus", amount: 3000, title: "家電製品の買い替え", desc: "ドライヤーと電子ケトルが同時に壊れてしまい痛い出費。", icon: "🔌", quality: "bad" },
+      { id: 14, tag: "相談", type: "info", amount: 0, title: "先生や親からのアドバイス", desc: "「最近生活はうまくいってる？」とお金の管理を心配された。", icon: "🗣️", quality: "neutral" },
+      { id: 15, tag: "臨時収入", type: "plus", amount: 2500, title: "古本・ゲームの買取まとめ売り", desc: "遊ばなくなったゲームを売って予想以上の金額になった！", icon: "🎮", quality: "good" },
+      { id: 16, tag: "急な出費", type: "minus", amount: 2000, title: "友人の結婚祝いのご祝儀代", desc: "おめでたい出来事だけど、急な出費でお財布が厳しい。", icon: "💐", quality: "bad" }
+    ];
+
+    // --- ゲーム状態管理 (State) ---
+    let gameState = {
+      maxMonths: 6,
+      currentMonth: 1,
+      selectedHouse: HOUSES.cheap,
+      wallet: 10000,
+      debt: 0,
+      currentBet: 0,
+      selectedCardIdx: null,
+      gambleWon: false,
+      gambleProfit: 0,
+      drawnEvents: [],       // 今月引いたイベントカードのリスト
+      chosenEvent: null,     // 今月確定させたイベントカード
+      records: [],           // 月ごとの記録
+      stoppedGamblingEarly: false
+    };
+
+    // --- DOM要素 ---
+    const screens = {
+      start: document.getElementById('screen-start'),
+      event: document.getElementById('screen-event'),
+      living: document.getElementById('screen-living'),
+      bet: document.getElementById('screen-bet'),
+      cards: document.getElementById('screen-cards'),
+      reflect: document.getElementById('screen-reflect'),
+      result: document.getElementById('screen-result')
+    };
+
+    const header = {
+      month: document.getElementById('header-month'),
+      maxMonth: document.getElementById('header-max-month'),
+      houseName: document.getElementById('header-house-name'),
+      phaseText: document.getElementById('header-phase-text'),
+      wallet: document.getElementById('stat-wallet'),
+      debt: document.getElementById('stat-debt'),
+      net: document.getElementById('stat-net')
+    };
+
+    // --- 画面切替ヘルパー ---
+    function showScreen(targetKey, phaseTitle = "") {
+      Object.keys(screens).forEach(key => {
+        if (key === targetKey) {
+          screens[key].classList.remove('hidden');
+          screens[key].classList.add('flex');
+        } else {
+          screens[key].classList.add('hidden');
+          screens[key].classList.remove('flex');
+        }
+      });
+      if (phaseTitle) {
+        header.phaseText.textContent = `【${phaseTitle}】`;
+      }
+      updateHeaderStats();
+    }
+
+    function formatYen(val) {
+      return val.toLocaleString() + '円';
+    }
+
+    function updateHeaderStats() {
+      header.month.textContent = gameState.currentMonth;
+      header.maxMonth.textContent = gameState.maxMonths;
+      header.houseName.textContent = gameState.selectedHouse.name;
+      header.wallet.textContent = formatYen(gameState.wallet);
+      header.debt.textContent = formatYen(gameState.debt);
+
+      const net = gameState.wallet - gameState.debt;
+      header.net.textContent = formatYen(net);
+      header.net.className = net < 0 
+        ? "text-rose-400 font-black text-base md:text-lg" 
+        : "text-sky-300 font-black text-base md:text-lg";
+    }
+
+    // --- 月ごとの動的設定生成 ---
+    function getMonthSettings(month, maxMonths) {
+      // 月の経過割合 (0.0 ～ 1.0)
+      const ratio = (month - 1) / Math.max(1, maxMonths - 1);
+      
+      // 当たりカード数: 序盤は3枚、中盤は2枚、終盤は1枚
+      let winCards = 3;
+      if (ratio > 0.6) winCards = 1;
+      else if (ratio > 0.25) winCards = 2;
+
+      // 倍率: 序盤2.0倍 → 終盤6.0倍に上昇
+      const multiplier = Math.round((2.0 + ratio * 4.0) * 10) / 10;
+
+      return { winCards, multiplier };
+    }
+
+    // --- ゲーム初期化 ---
+    function initSetup() {
+      gameState = {
+        maxMonths: 6,
+        currentMonth: 1,
+        selectedHouse: HOUSES.cheap,
+        wallet: 10000,
+        debt: 0,
+        currentBet: 0,
+        selectedCardIdx: null,
+        gambleWon: false,
+        gambleProfit: 0,
+        drawnEvents: [],
+        chosenEvent: null,
+        records: [],
+        stoppedGamblingEarly: false
+      };
+      showScreen('start', '設定画面');
+    }
+
+    // --- 1. イベントカードフェーズ開始 ---
+    function startMonthEvent() {
+      showScreen('event', '1. 生活イベント');
+      
+      const house = gameState.selectedHouse;
+      const drawCount = house.drawCount;
+
+      // イベント抽選ロジック
+      gameState.drawnEvents = [];
+      for (let i = 0; i < drawCount; i++) {
+        let card = pickRandomEventCard(house.goodRateBonus);
+        // 超豪華邸宅の臨時収入ボーナス
+        if (house.bonusMoney > 0 && card.type === 'plus') {
+          card = { ...card, amount: card.amount + house.bonusMoney };
+        }
+        gameState.drawnEvents.push(card);
+      }
+
+      // 描画
+      const container = document.getElementById('event-cards-container');
+      container.innerHTML = '';
+
+      const hintText = document.getElementById('event-select-hint');
+      const nextBtn = document.getElementById('btn-event-next');
+
+      if (drawCount > 1) {
+        hintText.classList.remove('hidden');
+        nextBtn.classList.add('hidden'); // カード選択まで隠す
+        container.className = "grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl";
+      } else {
+        hintText.classList.add('hidden');
+        nextBtn.classList.remove('hidden');
+        container.className = "grid grid-cols-1 gap-4 w-full max-w-md";
+      }
+
+      gameState.drawnEvents.forEach((ev, idx) => {
+        const cardEl = document.createElement('div');
+        const isSelectable = drawCount > 1;
+
+        cardEl.className = `glass-panel border-2 ${isSelectable ? 'border-sky-500/40 hover:border-amber-400 cursor-pointer' : 'border-sky-500/50'} rounded-2xl p-5 text-center shadow-xl space-y-3 relative overflow-hidden transition transform hover:-translate-y-1`;
+        
+        let typeBadgeClass = "bg-emerald-500 text-slate-950";
+        if (ev.type === 'minus') typeBadgeClass = "bg-rose-500 text-white";
+        if (ev.type === 'info') typeBadgeClass = "bg-slate-600 text-slate-100";
+
+        let effectText = `+${formatYen(ev.amount)}`;
+        let effectColor = "text-emerald-400";
+        if (ev.type === 'minus') { effectText = `-${formatYen(ev.amount)}`; effectColor = "text-rose-400"; }
+        if (ev.type === 'info') { effectText = "お金の変動なし"; effectColor = "text-slate-400"; }
+
+        cardEl.innerHTML = `
+          <div class="flex justify-between items-center">
+            <span class="inline-block px-3 py-1 rounded-full text-xs font-extrabold ${typeBadgeClass}">
+              ${ev.tag}
+            </span>
+            ${isSelectable ? `<span class="text-xs text-amber-300 font-bold bg-amber-500/20 px-2 py-0.5 rounded-md">選択肢 ${idx + 1}</span>` : ''}
+          </div>
+          <div class="text-4xl my-1">${ev.icon}</div>
+          <h3 class="text-lg font-black text-sky-200">${ev.title}</h3>
+          <p class="text-xs text-slate-300 leading-relaxed min-h-[3rem] flex items-center justify-center">
+            ${ev.desc}
+          </p>
+          <div class="text-base font-black ${effectColor} bg-slate-950/70 py-2 rounded-xl border border-slate-800">
+            ${effectText}
+          </div>
+        `;
+
+        if (isSelectable) {
+          cardEl.addEventListener('click', () => {
+            selectEventCard(ev);
+          });
+        }
+
+        container.appendChild(cardEl);
+      });
+
+      // 1枚引きの場合は自動的にそれを選択済みにする
+      if (drawCount === 1) {
+        gameState.chosenEvent = gameState.drawnEvents[0];
+      }
+    }
+
+    function pickRandomEventCard(goodRateBonus) {
+      // 確率判定: goodRateBonusに応じポジティブ確率アップ
+      const roll = Math.random();
+      let targetQuality = null;
+
+      if (roll < 0.45 + goodRateBonus) {
+        targetQuality = 'good';
+      } else if (roll < 0.85) {
+        targetQuality = 'bad';
+      } else {
+        targetQuality = 'neutral';
+      }
+
+      const filtered = EVENT_POOL.filter(c => c.quality === targetQuality);
+      if (filtered.length === 0) return EVENT_POOL[Math.floor(Math.random() * EVENT_POOL.length)];
+      return filtered[Math.floor(Math.random() * filtered.length)];
+    }
+
+    function selectEventCard(ev) {
+      gameState.chosenEvent = ev;
+      // 適用
+      applyEventEffect(ev);
+      startLivingPhase();
+    }
+
+    function applyEventEffect(ev) {
+      if (ev.type === 'plus') {
+        gameState.wallet += ev.amount;
+      } else if (ev.type === 'minus') {
+        gameState.wallet -= ev.amount;
+        if (gameState.wallet < 0) {
+          gameState.debt += Math.abs(gameState.wallet);
+          gameState.wallet = 0;
+        }
+      }
+      updateHeaderStats();
+    }
+
+    // --- 2. 生活費支払いフェーズ ---
+    function startLivingPhase() {
+      // 1枚引きのときは「次へ進む」ボタンでここに到達
+      if (gameState.selectedHouse.drawCount === 1 && gameState.chosenEvent) {
+        applyEventEffect(gameState.chosenEvent);
+      }
+
+      showScreen('living', '2. 生活費支払い');
+      
+      const house = gameState.selectedHouse;
+      const isFirstMonth = (gameState.currentMonth === 1);
+      const rentCost = isFirstMonth ? 0 : house.rent;
+
+      document.getElementById('living-house-label').textContent = `${house.name}の家賃:`;
+      document.getElementById('living-rent-amount').textContent = formatYen(rentCost);
+      document.getElementById('living-cost-amount').textContent = formatYen(rentCost);
+
+      const notice = document.getElementById('living-notice');
+      if (isFirstMonth) {
+        notice.classList.remove('hidden');
+      } else {
+        notice.classList.add('hidden');
+      }
+    }
+
+    function payLivingCost() {
+      const isFirstMonth = (gameState.currentMonth === 1);
+      const cost = isFirstMonth ? 0 : gameState.selectedHouse.rent;
+
+      if (cost > 0) {
+        if (gameState.wallet >= cost) {
+          gameState.wallet -= cost;
+        } else {
+          const shortage = cost - gameState.wallet;
+          gameState.wallet = 0;
+          gameState.debt += shortage; // 不足分は全額自動借金
+        }
+      }
+
+      updateHeaderStats();
+      startBetPhase();
+    }
+
+    // --- 3. ギャンブルベット設定フェーズ ---
+    function startBetPhase() {
+      showScreen('bet', '3. 賭け金の決定');
+      const setting = getMonthSettings(gameState.currentMonth, gameState.maxMonths);
+
+      document.getElementById('bet-win-count').textContent = `4枚中 ${setting.winCards}枚`;
+      document.getElementById('bet-multiplier').textContent = `${setting.multiplier.toFixed(1)}倍`;
+
+      const inputBet = document.getElementById('input-bet-amount');
+      inputBet.value = Math.min(2000, Math.max(1000, gameState.wallet));
+
+      checkBetWarning();
+    }
+
+    function checkBetWarning() {
+      const betVal = parseInt(document.getElementById('input-bet-amount').value) || 0;
+      const warning = document.getElementById('bet-warning');
+      if (betVal > gameState.wallet) {
+        warning.classList.remove('hidden');
+      } else {
+        warning.classList.add('hidden');
+      }
+    }
+
+    // --- 4. カード選択フェーズ ---
+    function startCardPhase(betAmount) {
+      gameState.currentBet = betAmount;
+      if (betAmount === 0) {
+        gameState.stoppedGamblingEarly = true;
+        gameState.gambleWon = false;
+        gameState.gambleProfit = 0;
+        startReflectPhase();
+        return;
+      }
+
+      showScreen('cards', '4. カード選び');
+      document.getElementById('card-title-text').textContent = "カードを1枚えらんでね！";
+      document.getElementById('gamble-result-box').classList.add('hidden');
+
+      const cardNodes = document.querySelectorAll('.card-item');
+      cardNodes.forEach((node) => {
+        node.classList.remove('pointer-events-none');
+        const inner = node.querySelector('.card-inner');
+        inner.classList.remove('is-flipped');
+        
+        const backIcon = node.querySelector('.card-result-icon');
+        const backText = node.querySelector('.card-result-text');
+        backIcon.textContent = "❓";
+        backText.textContent = "結果";
+      });
+    }
+
+    function handleCardSelect(selectedIndex) {
+      gameState.selectedCardIdx = selectedIndex;
+      const setting = getMonthSettings(gameState.currentMonth, gameState.maxMonths);
+      
+      let outcomes = [false, false, false, false];
+      let placedWins = 0;
+      while (placedWins < setting.winCards) {
+        let r = Math.floor(Math.random() * 4);
+        if (!outcomes[r]) {
+          outcomes[r] = true;
+          placedWins++;
+        }
+      }
+
+      const isWin = outcomes[selectedIndex];
+      gameState.gambleWon = isWin;
+
+      // ベット金清算
+      if (gameState.currentBet > gameState.wallet) {
+        const shortage = gameState.currentBet - gameState.wallet;
+        gameState.debt += shortage;
+        gameState.wallet = 0;
+      } else {
+        gameState.wallet -= gameState.currentBet;
+      }
+
+      if (isWin) {
+        gameState.gambleProfit = Math.round(gameState.currentBet * setting.multiplier);
+        gameState.wallet += gameState.gambleProfit;
+      } else {
+        gameState.gambleProfit = 0;
+      }
+
+      updateHeaderStats();
+
+      // トランプめくりアニメーション
+      const cardNodes = document.querySelectorAll('.card-item');
+      cardNodes.forEach((node, idx) => {
+        node.classList.add('pointer-events-none');
+        const inner = node.querySelector('.card-inner');
+        const backIcon = node.querySelector('.card-result-icon');
+        const backText = node.querySelector('.card-result-text');
+
+        const cardWin = outcomes[idx];
+
+        setTimeout(() => {
+          if (cardWin) {
+            backIcon.textContent = "🎉";
+            backText.textContent = "当たり！";
+            backText.className = "card-result-text font-black text-sm text-amber-400";
+          } else {
+            backIcon.textContent = "💀";
+            backText.textContent = "ハズレ";
+            backText.className = "card-result-text font-black text-sm text-slate-400";
+          }
+          inner.classList.add('is-flipped');
+        }, idx === selectedIndex ? 0 : 250);
+      });
+
+      // 結果アナウンス
+      setTimeout(() => {
+        const resultBox = document.getElementById('gamble-result-box');
+        const title = document.getElementById('result-status-title');
+        const desc = document.getElementById('result-status-desc');
+
+        resultBox.classList.remove('hidden');
+        if (isWin) {
+          title.textContent = "🎉 大当たり！";
+          title.className = "text-2xl font-black text-amber-400";
+          desc.textContent = `${formatYen(gameState.currentBet)}賭けて、${formatYen(gameState.gambleProfit)}を獲得！`;
+        } else {
+          title.textContent = "💀 残念… ハズレ！";
+          title.className = "text-2xl font-black text-rose-400";
+          desc.textContent = `${formatYen(gameState.currentBet)}を失ってしまった…`;
+        }
+      }, 900);
+    }
+
+    // --- 5. 今月の振り返り＆利息計算 ---
+    function startReflectPhase() {
+      showScreen('reflect', '5. 今月の振り返り');
+
+      // 借金の20%利息加算
+      const interestNotice = document.getElementById('debt-interest-notice');
+      const interestDetail = document.getElementById('debt-interest-detail');
+
+      if (gameState.debt > 0) {
+        const interest = Math.round(gameState.debt * 0.20);
+        gameState.debt += interest;
+        interestNotice.classList.remove('hidden');
+        interestDetail.textContent = `前の月の借金残高に対し利息20% (+${formatYen(interest)}) が加算されました。`;
+      } else {
+        interestNotice.classList.add('hidden');
+      }
+
+      updateHeaderStats();
+
+      document.getElementById('summary-wallet').textContent = formatYen(gameState.wallet);
+      document.getElementById('summary-debt').textContent = formatYen(gameState.debt);
+      
+      const net = gameState.wallet - gameState.debt;
+      const netEl = document.getElementById('summary-net');
+      netEl.textContent = formatYen(net);
+      netEl.className = net < 0 ? "text-rose-400 font-bold" : "text-sky-300 font-bold";
+
+      document.getElementById('input-emotion-custom').value = "";
+    }
+
+    // 今月の記録確定・次月進み
+    function finishMonthRecord() {
+      const customEmotion = document.getElementById('input-emotion-custom').value.trim();
+      let selectedEmotion = customEmotion;
+      
+      if (!selectedEmotion) {
+        if (gameState.debt > 0) selectedEmotion = "借金が増えて不安…";
+        else if (gameState.gambleWon) selectedEmotion = "勝てて最高！もっとやりたい";
+        else if (gameState.currentBet === 0) selectedEmotion = "ギャンブルを我慢できた";
+        else selectedEmotion = "次は勝てるはず…！";
+      }
+
+      const net = gameState.wallet - gameState.debt;
+
+      gameState.records.push({
+        month: gameState.currentMonth,
+        wallet: gameState.wallet,
+        debt: gameState.debt,
+        net: net,
+        emotion: selectedEmotion,
+        betAmount: gameState.currentBet,
+        won: gameState.gambleWon
+      });
+
+      if (gameState.currentMonth < gameState.maxMonths) {
+        gameState.currentMonth++;
+        startMonthEvent();
+      } else {
+        showEndingScreen();
+      }
+    }
+
+    // --- 6. エンディング発表 ---
+    function showEndingScreen() {
+      showScreen('result', 'ゲーム終了');
+
+      const net = gameState.wallet - gameState.debt;
+      const totalDebt = gameState.debt;
+
+      let endingType = "D";
+      let endingTitle = "無借金での計画的ライフ達成！";
+      let endingBadgeClass = "bg-emerald-500 text-slate-950 font-black px-3 py-1 rounded-lg text-xs";
+      let endingDesc = "ギャンブルの罠に惑わされず、家賃や固定費を計画的に支払い、健全なお金管理を貫き通しました！素晴らしい選択です。";
+
+      if (totalDebt > 6000) {
+        endingType = "A";
+        endingTitle = "負けを取り返そうとして借金地獄に落ちた";
+        endingBadgeClass = "bg-rose-600 text-white font-black px-3 py-1 rounded-lg text-xs";
+        endingDesc = "最初の当たり体験や負けた悔しさから熱くなり、生活費や利息（20%）の危険を無視して借り入れを重ねてしまいました。";
+      } else if (totalDebt > 0 || net < 3000) {
+        endingType = "B";
+        endingTitle = "お金は残ったが、生活費や借金で苦しい";
+        endingBadgeClass = "bg-amber-500 text-slate-950 font-black px-3 py-1 rounded-lg text-xs";
+        endingDesc = "ギャンブルで勝つことはありましたが、毎月の固定費や利息を考慮せず、余裕のないギリギリの生活になってしまいました。";
+      } else if (gameState.stoppedGamblingEarly) {
+        endingType = "C";
+        endingTitle = "途中でやめて生活を守り切った！";
+        endingBadgeClass = "bg-sky-500 text-slate-950 font-black px-3 py-1 rounded-lg text-xs";
+        endingDesc = "「これ以上賭け続けると危険だ」と自分の行動に気づき、賭けをやめて生活費の確保を最優先にできました。現実でも大成功の選択です！";
+      }
+
+      document.getElementById('ending-badge').textContent = `結末 ${endingType}`;
+      document.getElementById('ending-badge').className = endingBadgeClass;
+      document.getElementById('ending-title').textContent = endingTitle;
+      document.getElementById('ending-desc').textContent = endingDesc;
+
+      document.getElementById('final-wallet').textContent = formatYen(gameState.wallet);
+      document.getElementById('final-debt').textContent = formatYen(gameState.debt);
+      document.getElementById('final-net').textContent = formatYen(net);
+
+      // テーブル生成
+      const tableBody = document.getElementById('result-table-body');
+      tableBody.innerHTML = "";
+      gameState.records.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-800/40";
+        tr.innerHTML = `
+          <td class="py-2 px-2 text-amber-400 font-bold">${r.month}月</td>
+          <td class="py-2 px-2 text-emerald-400 font-bold">${formatYen(r.wallet)}</td>
+          <td class="py-2 px-2 ${r.debt > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">${formatYen(r.debt)}</td>
+          <td class="py-2 px-2 ${r.net < 0 ? 'text-rose-400 font-bold' : 'text-sky-300 font-bold'}">${formatYen(r.net)}</td>
+          <td class="py-2 px-2 text-slate-300 text-[11px] truncate max-w-[120px]">${r.emotion}</td>
+        `;
+        tableBody.appendChild(tr);
+      });
+    }
+
+    // --- イベントリスナー設定 ---
+    document.addEventListener('DOMContentLoaded', () => {
+
+      // ゲーム開始ボタン
+      document.getElementById('btn-game-start').addEventListener('click', () => {
+        // ラジオボタン値の取得
+        const durChecked = document.querySelector('input[name="game-duration"]:checked');
+        const houseChecked = document.querySelector('input[name="house-type"]:checked');
+
+        gameState.maxMonths = parseInt(durChecked.value) || 6;
+        gameState.selectedHouse = HOUSES[houseChecked.value] || HOUSES.cheap;
+
+        startMonthEvent();
+      });
+
+      // 1. イベントフェーズ（1枚ドロー時のみ「次へ」ボタン使用）
+      document.getElementById('btn-event-next').addEventListener('click', () => {
+        startLivingPhase();
+      });
+
+      // 2. 生活費支払いボタン
+      document.getElementById('btn-living-pay').addEventListener('click', () => {
+        payLivingCost();
+      });
+
+      // 3. ベット額プリセット
+      document.querySelectorAll('.btn-preset-bet').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const amt = parseInt(e.target.getAttribute('data-amount'));
+          document.getElementById('input-bet-amount').value = amt;
+          checkBetWarning();
+        });
+      });
+
+      document.getElementById('input-bet-amount').addEventListener('input', checkBetWarning);
+
+      // 賭けない選択
+      document.getElementById('btn-skip-gamble').addEventListener('click', () => {
+        startCardPhase(0);
+      });
+
+      // 賭ける選択
+      document.getElementById('btn-confirm-bet').addEventListener('click', () => {
+        const betAmt = parseInt(document.getElementById('input-bet-amount').value) || 0;
+        if (betAmt <= 0) {
+          alert('賭ける金額を入力するか、「賭けない」を選んでね！');
+          return;
+        }
+        startCardPhase(betAmt);
+      });
+
+      // 4. トランプ選択
+      document.querySelectorAll('.card-item').forEach(card => {
+        card.addEventListener('click', (e) => {
+          const target = e.currentTarget;
+          const idx = parseInt(target.getAttribute('data-card-idx'));
+          handleCardSelect(idx);
+        });
+      });
+
+      // 精算画面へ
+      document.getElementById('btn-cards-next').addEventListener('click', () => {
+        startReflectPhase();
+      });
+
+      // 5. 気持ちプリセット
+      document.querySelectorAll('.btn-emotion').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const emotionText = e.target.getAttribute('data-emotion');
+          document.getElementById('input-emotion-custom').value = emotionText;
+        });
+      });
+
+      // 今月を記録して次へ
+      document.getElementById('btn-finish-month').addEventListener('click', () => {
+        finishMonthRecord();
+      });
+
+      // リスタート
+      document.getElementById('btn-restart').addEventListener('click', () => {
+        initSetup();
+      });
+
+      // 初期起動
+      initSetup();
+    });
+  </script>
+</body>
+</html>
